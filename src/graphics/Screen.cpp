@@ -123,7 +123,7 @@ static bool heartbeat = false;
 
 #define getStringCenteredX(s) ((SCREEN_WIDTH - display->getStringWidth(s)) / 2)
 
-/// Check if the display can render a string (detect special chars; emoji)
+// Check if the display can render a string (detect special chars; emoji)
 static bool haveGlyphs(const char *str)
 {
 #if defined(OLED_PL) || defined(OLED_UA) || defined(OLED_RU) || defined(OLED_CS)
@@ -158,7 +158,7 @@ static void drawIconScreen(const char *upperMsg, OLEDDisplay *display, OLEDDispl
 
     // draw centered icon left to right and centered above the one line of app text
     display->drawXbm(x + (SCREEN_WIDTH - icon_width) / 2, y + (SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM - icon_height) / 2 + 2,
-                     icon_width, icon_height, icon_bits);
+    icon_width, icon_height, icon_bits, 0);
 
     display->setFont(FONT_MEDIUM);
     display->setTextAlignment(TEXT_ALIGN_LEFT);
@@ -184,6 +184,56 @@ static void drawIconScreen(const char *upperMsg, OLEDDisplay *display, OLEDDispl
 
     display->setTextAlignment(TEXT_ALIGN_LEFT); // Restore left align, just to be kind to any other unsuspecting code
 }
+
+#ifdef USERPREFS_OEM_TEXT
+
+static void drawOEMIconScreen(const char *upperMsg, OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
+{
+    static const uint8_t xbm[] = USERPREFS_OEM_IMAGE_DATA;
+    display->drawXbm(x + (SCREEN_WIDTH - USERPREFS_OEM_IMAGE_WIDTH) / 2,
+                     y + (SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM - USERPREFS_OEM_IMAGE_HEIGHT) / 2 + 2, USERPREFS_OEM_IMAGE_WIDTH,
+                     USERPREFS_OEM_IMAGE_HEIGHT, xbm);
+
+    switch (USERPREFS_OEM_FONT_SIZE) {
+    case 0:
+        display->setFont(FONT_SMALL);
+        break;
+    case 2:
+        display->setFont(FONT_LARGE);
+        break;
+    default:
+        display->setFont(FONT_MEDIUM);
+        break;
+    }
+
+    display->setTextAlignment(TEXT_ALIGN_LEFT);
+    const char *title = USERPREFS_OEM_TEXT;
+    display->drawString(x + getStringCenteredX(title), y + SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM, title);
+    display->setFont(FONT_SMALL);
+
+    // Draw region in upper left
+    if (upperMsg)
+        display->drawString(x + 0, y + 0, upperMsg);
+
+    // Draw version and shortname in upper right
+    char buf[25];
+    snprintf(buf, sizeof(buf), "%s\n%s", xstr(APP_VERSION_SHORT), haveGlyphs(owner.short_name) ? owner.short_name : "");
+
+    display->setTextAlignment(TEXT_ALIGN_RIGHT);
+    display->drawString(x + SCREEN_WIDTH, y + 0, buf);
+    screen->forceDisplay();
+
+    display->setTextAlignment(TEXT_ALIGN_LEFT); // Restore left align, just to be kind to any other unsuspecting code
+}
+
+static void drawOEMBootScreen(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
+{
+    // Draw region in upper left
+    const char *region = myRegion ? myRegion->name : NULL;
+    drawOEMIconScreen(region, display, state, x, y);
+}
+
+#endif
 
 void Screen::drawFrameText(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y, const char *message)
 {
@@ -961,63 +1011,63 @@ static void drawTextMessageFrame(OLEDDisplay *display, OLEDDisplayUiState *state
     if (strcmp(msg, "\U0001F44D") == 0) {
         display->drawXbm(x + (SCREEN_WIDTH - thumbs_width) / 2,
                          y + (SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM - thumbs_height) / 2 + 2 + 5, thumbs_width, thumbs_height,
-                         thumbup);
+                         thumbup, 0);
     } else if (strcmp(msg, "\U0001F44E") == 0) {
         display->drawXbm(x + (SCREEN_WIDTH - thumbs_width) / 2,
                          y + (SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM - thumbs_height) / 2 + 2 + 5, thumbs_width, thumbs_height,
-                         thumbdown);
+                         thumbdown, 0);
     } else if (strcmp(msg, "\U0001F60A") == 0 || strcmp(msg, "\U0001F600") == 0 || strcmp(msg, "\U0001F642") == 0 ||
                strcmp(msg, "\U0001F609") == 0 ||
                strcmp(msg, "\U0001F601") == 0) { // matches 5 different common smileys, so that the phone user doesn't have to
                                                  // remember which one is compatible
         display->drawXbm(x + (SCREEN_WIDTH - smiley_width) / 2,
                          y + (SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM - smiley_height) / 2 + 2 + 5, smiley_width, smiley_height,
-                         smiley);
+                         smiley, 0);
     } else if (strcmp(msg, "❓") == 0) {
         display->drawXbm(x + (SCREEN_WIDTH - question_width) / 2,
                          y + (SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM - question_height) / 2 + 2 + 5, question_width, question_height,
-                         question);
+                         question, 0);
     } else if (strcmp(msg, "‼️") == 0) {
         display->drawXbm(x + (SCREEN_WIDTH - bang_width) / 2, y + (SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM - bang_height) / 2 + 2 + 5,
-                         bang_width, bang_height, bang);
+                         bang_width, bang_height, bang, 0);
     } else if (strcmp(msg, "\U0001F4A9") == 0) {
         display->drawXbm(x + (SCREEN_WIDTH - poo_width) / 2, y + (SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM - poo_height) / 2 + 2 + 5,
-                         poo_width, poo_height, poo);
+                         poo_width, poo_height, poo, 0);
     } else if (strcmp(msg, "\U0001F923") == 0) {
         display->drawXbm(x + (SCREEN_WIDTH - haha_width) / 2, y + (SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM - haha_height) / 2 + 2 + 5,
-                         haha_width, haha_height, haha);
+                         haha_width, haha_height, haha, 0);
     } else if (strcmp(msg, "\U0001F44B") == 0) {
         display->drawXbm(x + (SCREEN_WIDTH - wave_icon_width) / 2,
                          y + (SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM - wave_icon_height) / 2 + 2 + 5, wave_icon_width,
-                         wave_icon_height, wave_icon);
+                         wave_icon_height, wave_icon, 0);
     } else if (strcmp(msg, "\U0001F920") == 0) {
         display->drawXbm(x + (SCREEN_WIDTH - cowboy_width) / 2,
                          y + (SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM - cowboy_height) / 2 + 2 + 5, cowboy_width, cowboy_height,
-                         cowboy);
+                         cowboy, 0);
     } else if (strcmp(msg, "\U0001F42D") == 0) {
         display->drawXbm(x + (SCREEN_WIDTH - deadmau5_width) / 2,
                          y + (SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM - deadmau5_height) / 2 + 2 + 5, deadmau5_width, deadmau5_height,
-                         deadmau5);
+                         deadmau5, 0);
     } else if (strcmp(msg, "\xE2\x98\x80\xEF\xB8\x8F") == 0) {
         display->drawXbm(x + (SCREEN_WIDTH - sun_width) / 2, y + (SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM - sun_height) / 2 + 2 + 5,
-                         sun_width, sun_height, sun);
+                         sun_width, sun_height, sun, 0);
     } else if (strcmp(msg, "\u2614") == 0) {
         display->drawXbm(x + (SCREEN_WIDTH - rain_width) / 2, y + (SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM - rain_height) / 2 + 2 + 10,
-                         rain_width, rain_height, rain);
+                         rain_width, rain_height, rain, 0);
     } else if (strcmp(msg, "☁️") == 0) {
         display->drawXbm(x + (SCREEN_WIDTH - cloud_width) / 2,
-                         y + (SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM - cloud_height) / 2 + 2 + 5, cloud_width, cloud_height, cloud);
+                         y + (SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM - cloud_height) / 2 + 2 + 5, cloud_width, cloud_height, cloud, 0);
     } else if (strcmp(msg, "🌫️") == 0) {
         display->drawXbm(x + (SCREEN_WIDTH - fog_width) / 2, y + (SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM - fog_height) / 2 + 2 + 5,
-                         fog_width, fog_height, fog);
+                         fog_width, fog_height, fog, 0);
     } else if (strcmp(msg, "\U0001F608") == 0) {
         display->drawXbm(x + (SCREEN_WIDTH - devil_width) / 2,
-                         y + (SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM - devil_height) / 2 + 2 + 5, devil_width, devil_height, devil);
+                         y + (SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM - devil_height) / 2 + 2 + 5, devil_width, devil_height, devil, 0);
     } else if (strcmp(msg, "♥️") == 0 || strcmp(msg, "\U0001F9E1") == 0 || strcmp(msg, "\U00002763") == 0 ||
                strcmp(msg, "\U00002764") == 0 || strcmp(msg, "\U0001F495") == 0 || strcmp(msg, "\U0001F496") == 0 ||
                strcmp(msg, "\U0001F497") == 0 || strcmp(msg, "\U0001F498") == 0) {
         display->drawXbm(x + (SCREEN_WIDTH - heart_width) / 2,
-                         y + (SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM - heart_height) / 2 + 2 + 5, heart_width, heart_height, heart);
+                         y + (SCREEN_HEIGHT - FONT_HEIGHT_MEDIUM - heart_height) / 2 + 2 + 5, heart_width, heart_height, heart, 0);
     } else {
         snprintf(tempBuf, sizeof(tempBuf), "%s", mp.decoded.payload.bytes);
         display->drawStringMaxWidth(0 + x, 0 + y + FONT_HEIGHT_SMALL, x + display->getWidth(), tempBuf);
@@ -1248,30 +1298,27 @@ static int8_t prevFrame = -1;
 // Draw the arrow pointing to a node's location
 void Screen::drawNodeHeading(OLEDDisplay *display, int16_t compassX, int16_t compassY, uint16_t compassDiam, float headingRadian)
 {
-    Point tip(0.0f, 0.5f), tail(0.0f, -0.35f); // pointing up initially
-    float arrowOffsetX = 0.14f, arrowOffsetY = 1.0f;
-    Point leftArrow(tip.x - arrowOffsetX, tip.y - arrowOffsetY), rightArrow(tip.x + arrowOffsetX, tip.y - arrowOffsetY);
+// Example: Suppose your XBM icon is 96 wide x 33 high
+static const int16_t iconWidth  = compass_width;
+static const int16_t iconHeight = compass_height;
 
-    Point *arrowPoints[] = {&tip, &tail, &leftArrow, &rightArrow};
+// Position so that the center of the icon is at (compassX, compassY).
+// That means top-left corner is half the width/height offset.
+int16_t xPos = compassX - iconWidth  / 2;
+int16_t yPos = compassY - iconHeight / 2;
 
-    for (int i = 0; i < 4; i++) {
-        arrowPoints[i]->rotate(headingRadian);
-        arrowPoints[i]->scale(compassDiam * 0.6);
-        arrowPoints[i]->translate(compassX, compassY);
-    }
-    /* Old arrow
-    display->drawLine(tip.x, tip.y, tail.x, tail.y);
-    display->drawLine(leftArrow.x, leftArrow.y, tip.x, tip.y);
-    display->drawLine(rightArrow.x, rightArrow.y, tip.x, tip.y);
-    display->drawLine(leftArrow.x, leftArrow.y, tail.x, tail.y);
-    display->drawLine(rightArrow.x, rightArrow.y, tail.x, tail.y);
-    */
-#ifdef USE_EINK
-    display->drawTriangle(tip.x, tip.y, rightArrow.x, rightArrow.y, tail.x, tail.y);
-#else
-    display->fillTriangle(tip.x, tip.y, rightArrow.x, rightArrow.y, tail.x, tail.y);
-#endif
-    display->drawTriangle(tip.x, tip.y, leftArrow.x, leftArrow.y, tail.x, tail.y);
+// Now just call the rotated draw function, passing in the heading in radians.
+// For example, if your drawXbmRotated is something like:
+//   drawXbmRotated(x, y, width, height, xbmPtr, angleRadians);
+// you’d do:
+display->drawXbm(
+    xPos,
+    yPos,
+    iconWidth,
+    iconHeight,
+    compass_bits,       // your XBM data pointer
+    headingRadian    // angle in radians
+);
 }
 
 // Get a string representation of the time passed since something happened
@@ -1400,9 +1447,9 @@ static void drawNodeInfo(OLEDDisplay *display, OLEDDisplayUiState *state, int16_
 
     static char distStr[20];
     if (config.display.units == meshtastic_Config_DisplayConfig_DisplayUnits_IMPERIAL) {
-        strncpy(distStr, "? mi", sizeof(distStr)); // might not have location data
+        strncpy(distStr, "? mi ?°", sizeof(distStr)); // might not have location data
     } else {
-        strncpy(distStr, "? km", sizeof(distStr));
+        strncpy(distStr, "? km ?°", sizeof(distStr));
     }
     meshtastic_NodeInfoLite *ourNode = nodeDB->getMeshNode(nodeDB->getNodeNum());
     const char *fields[] = {username, lastStr, signalStr, distStr, NULL};
@@ -1435,18 +1482,6 @@ static void drawNodeInfo(OLEDDisplay *display, OLEDDisplayUiState *state, int16_
             float d =
                 GeoCoord::latLongToMeter(DegD(p.latitude_i), DegD(p.longitude_i), DegD(op.latitude_i), DegD(op.longitude_i));
 
-            if (config.display.units == meshtastic_Config_DisplayConfig_DisplayUnits_IMPERIAL) {
-                if (d < (2 * MILES_TO_FEET))
-                    snprintf(distStr, sizeof(distStr), "%.0f ft", d * METERS_TO_FEET);
-                else
-                    snprintf(distStr, sizeof(distStr), "%.1f mi", d * METERS_TO_FEET / MILES_TO_FEET);
-            } else {
-                if (d < 2000)
-                    snprintf(distStr, sizeof(distStr), "%.0f m", d);
-                else
-                    snprintf(distStr, sizeof(distStr), "%.1f km", d / 1000);
-            }
-
             float bearingToOther =
                 GeoCoord::bearing(DegD(op.latitude_i), DegD(op.longitude_i), DegD(p.latitude_i), DegD(p.longitude_i));
             // If the top of the compass is a static north then bearingToOther can be drawn on the compass directly
@@ -1454,6 +1489,22 @@ static void drawNodeInfo(OLEDDisplay *display, OLEDDisplayUiState *state, int16_
             if (!config.display.compass_north_top)
                 bearingToOther -= myHeading;
             screen->drawNodeHeading(display, compassX, compassY, compassDiam, bearingToOther);
+
+            float bearingToOtherDegrees = (bearingToOther < 0) ? bearingToOther + 2 * PI : bearingToOther;
+            bearingToOtherDegrees = bearingToOtherDegrees * 180 / PI;
+
+            if (config.display.units == meshtastic_Config_DisplayConfig_DisplayUnits_IMPERIAL) {
+                if (d < (2 * MILES_TO_FEET))
+                    snprintf(distStr, sizeof(distStr), "%.0fft   %.0f°", d * METERS_TO_FEET, bearingToOtherDegrees);
+                else
+                    snprintf(distStr, sizeof(distStr), "%.1fmi   %.0f°", d * METERS_TO_FEET / MILES_TO_FEET,
+                             bearingToOtherDegrees);
+            } else {
+                if (d < 2000)
+                    snprintf(distStr, sizeof(distStr), "%.0fm   %.0f°", d, bearingToOtherDegrees);
+                else
+                    snprintf(distStr, sizeof(distStr), "%.1fkm   %.0f°", d / 1000, bearingToOtherDegrees);
+            }
         }
     }
     if (!hasNodeHeading) {
@@ -1658,6 +1709,10 @@ void Screen::setup()
     // Set the utf8 conversion function
     dispdev->setFontTableLookupFunction(customFontTableLookup);
 
+#ifdef USERPREFS_OEM_TEXT
+    logo_timeout *= 2; // Double the time if we have a custom logo
+#endif
+
     // Add frames.
     EINK_ADD_FRAMEFLAG(dispdev, DEMAND_FAST);
     alertFrames[0] = [this](OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y) -> void {
@@ -1802,6 +1857,22 @@ int32_t Screen::runOnce()
         stopBootScreen();
         showingBootScreen = false;
     }
+
+#ifdef USERPREFS_OEM_TEXT
+    static bool showingOEMBootScreen = true;
+    if (showingOEMBootScreen && (millis() > ((logo_timeout / 2) + serialSinceMsec))) {
+        LOG_INFO("Switch to OEM screen...");
+        // Change frames.
+        static FrameCallback bootOEMFrames[] = {drawOEMBootScreen};
+        static const int bootOEMFrameCount = sizeof(bootOEMFrames) / sizeof(bootOEMFrames[0]);
+        ui->setFrames(bootOEMFrames, bootOEMFrameCount);
+        ui->update();
+#ifndef USE_EINK
+        ui->update();
+#endif
+        showingOEMBootScreen = false;
+    }
+#endif
 
 #ifndef DISABLE_WELCOME_UNSET
     if (showingNormalScreen && config.lora.region == meshtastic_Config_LoRaConfig_RegionCode_UNSET) {
@@ -2578,13 +2649,12 @@ void DebugInfo::drawFrameSettings(OLEDDisplay *display, OLEDDisplayUiState *stat
             display->drawString(x + 1, y, String("USB"));
     }
 
-    auto mode = DisplayFormatters::getModemPresetDisplayName(config.lora.modem_preset, true);
+    //    auto mode = DisplayFormatters::getModemPresetDisplayName(config.lora.modem_preset, true);
 
-    display->drawString(x + SCREEN_WIDTH - display->getStringWidth(mode), y, mode);
-    if (config.display.heading_bold)
-        display->drawString(x + SCREEN_WIDTH - display->getStringWidth(mode) - 1, y, mode);
+    //    display->drawString(x + SCREEN_WIDTH - display->getStringWidth(mode), y, mode);
+    //    if (config.display.heading_bold)
+    //        display->drawString(x + SCREEN_WIDTH - display->getStringWidth(mode) - 1, y, mode);
 
-    // Line 2
     uint32_t currentMillis = millis();
     uint32_t seconds = currentMillis / 1000;
     uint32_t minutes = seconds / 60;
@@ -2596,6 +2666,9 @@ void DebugInfo::drawFrameSettings(OLEDDisplay *display, OLEDDisplayUiState *stat
     // hours %= 24;
 
     display->setColor(WHITE);
+
+    // Setup string to assemble analogClock string
+    std::string analogClock = "";
 
     // Show uptime as days, hours, minutes OR seconds
     std::string uptime = screen->drawTimeDelta(days, hours, minutes, seconds);
@@ -2613,17 +2686,36 @@ void DebugInfo::drawFrameSettings(OLEDDisplay *display, OLEDDisplayUiState *stat
         int min = (hms % SEC_PER_HOUR) / SEC_PER_MIN;
         int sec = (hms % SEC_PER_HOUR) % SEC_PER_MIN; // or hms % SEC_PER_MIN
 
-        char timebuf[10];
-        snprintf(timebuf, sizeof(timebuf), " %02d:%02d:%02d", hour, min, sec);
-        uptime += timebuf;
+        char timebuf[12];
+
+        if (config.display.use_12h_clock) {
+            std::string meridiem = "am";
+            if (hour >= 12) {
+                if (hour > 12)
+                    hour -= 12;
+                meridiem = "pm";
+            }
+            if (hour == 00) {
+                hour = 12;
+            }
+            snprintf(timebuf, sizeof(timebuf), "%d:%02d:%02d%s", hour, min, sec, meridiem.c_str());
+        } else {
+            snprintf(timebuf, sizeof(timebuf), "%02d:%02d:%02d", hour, min, sec);
+        }
+        analogClock += timebuf;
     }
 
-    display->drawString(x, y + FONT_HEIGHT_SMALL * 1, uptime.c_str());
+    // Line 1
+    display->drawString(x + SCREEN_WIDTH - display->getStringWidth(uptime.c_str()), y, uptime.c_str());
+
+    // Line 2
+    display->drawString(x, y + FONT_HEIGHT_SMALL * 1, analogClock.c_str());
 
     // Display Channel Utilization
     char chUtil[13];
     snprintf(chUtil, sizeof(chUtil), "ChUtil %2.0f%%", airTime->channelUtilizationPercent());
     display->drawString(x + SCREEN_WIDTH - display->getStringWidth(chUtil), y + FONT_HEIGHT_SMALL * 1, chUtil);
+
 #if HAS_GPS
     if (config.position.gps_mode == meshtastic_Config_PositionConfig_GpsMode_ENABLED) {
         // Line 3
